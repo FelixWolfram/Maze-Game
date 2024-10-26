@@ -1,0 +1,51 @@
+# change in drawing the walls
+if self.labyrinth[i][j].walls["top"] and self.labyrinth[i][j - 1 if j - 1 >= 0 else 0].walls["bottom"]: 
+    draw.rect(win, self.wall_color, (i * Info.cell_size + i * Info.wall_width, j * Info.cell_size + j * Info.wall_width, 
+                                        Info.cell_size + 2 * Info.wall_width, Info.wall_width))
+if self.labyrinth[i][j].walls["bottom"] and self.labyrinth[i][j + 1 if j + 1 < Info.rows else j].walls["top"]:
+    draw.rect(win, self.wall_color, (i * Info.cell_size + i * Info.wall_width, j * Info.cell_size + (j + 1) * Info.wall_width + Info.cell_size, 
+                                        Info.cell_size + 2 * Info.wall_width, Info.wall_width))
+if self.labyrinth[i][j].walls["left"] and self.labyrinth[i - 1 if i - 1 >= 0 else 0][j].walls["right"]:
+    draw.rect(win, self.wall_color, (i * Info.cell_size + i * Info.wall_width, j * Info.cell_size + j * Info.wall_width, 
+                                        Info.wall_width, Info.cell_size + 2 * Info.wall_width))
+if self.labyrinth[i][j].walls["right"] and self.labyrinth[i + 1 if i + 1 < Info.cols else i][j].walls["left"]:
+    draw.rect(win, self.wall_color, (i * Info.cell_size + (i + 1) * Info.wall_width + Info.cell_size, j * Info.cell_size + j * Info.wall_width, 
+                                        Info.wall_width, Info.cell_size + 2 * Info.wall_width))
+
+
+
+# the cells do not get drawn anymore now, we just take the background
+draw.rect(win, self.cell_color, (i * Info.cell_size + (i + 1) * Info.wall_width, j * Info.cell_size + (j + 1) * Info.wall_width,
+                                        Info.cell_size, Info.cell_size))
+
+
+
+
+                    '''if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_UP:
+                        self.player.move(Direct.UP, self.redraw_window)  # macht man das so?
+                    elif event.key == pygame.K_DOWN:
+                        self.player.move(Direct.DOWN, self.redraw_window)
+                    elif event.key == pygame.K_LEFT:
+                        self.player.move(Direct.LEFT, self.redraw_window)
+                    elif event.key == pygame.K_RIGHT:
+                        self.player.move(Direct.RIGHT, self.redraw_window) '''
+
+
+
+
+            '''if self.player.cell != self.labyrinth.end_cell:  # while the player has not reached the end
+                self.labyrinth.draw(self.player.cell)
+
+                self.player.cell = self.player.move()
+                if self.player.cell in self.labyrinth.question_cells:   # ask a question when the player reaches a question cell
+                    if not self.questions.ask_question(self.player.cell):     # when the player answers the question correctly
+                        print("Wrong answer!")
+                        close_game = self.input_play_again()
+                        return
+            else:   # when the player reaches the end
+                self.labyrinth.draw(self.player.cell)
+                print()
+                cowsay.cow("You reached the end!\n")
+                print()
+                close_game = self.input_play_again()'''
