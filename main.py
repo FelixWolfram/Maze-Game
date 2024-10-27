@@ -2,30 +2,40 @@ from os import system
 import sys
 from labyrinth import Labyrinth
 from player import Player
-from teleports import Teleports
+from portals import Portals
 import pygame
+from lucky_blocks import LuckyBlock
 from data_structs import Direct, Info
 from math import sqrt
 
 # TODO:
-# all values which every module needs in an seperate class and then just import this class
 # better action if the player reaches the end
 # Fragezeichen setzten mit Powerups: Teleport an eine zufällige Stelle, andere (zufällige Powerups), eine Wand entfernen, Fragen einbauen, Gegenerische Spieler einbauen, ggf. Leben
 # portals could be generated right in front of the player
+# add that if you have a speed lucky block, you will get other lucky blocks instead of just going over it -> WOULD BE NICE
+# add enemies
+# better colors/GUI -> confusing sometimes
+# are all the bugs fixed??
 
 class Game:
-    def __init__(self): 
+    def __init__(self):
+        self.cell_color = (125, 175, 100)
+
+
         self.win = pygame.display.set_mode((Info.win_width, Info.win_height))
+        self.lucky_blocks = {}
 
-        self.labyrinth = Labyrinth()
-        self.portals = Teleports(self.labyrinth.end_cell)
+        self.labyrinth = Labyrinth(self.lucky_blocks)
+        self.portals = Portals(self.labyrinth.end_cell)
+        self.labyrinth.add_portals(self.portals.add_portal, self.portals.portal_count)
 
-        self.player = Player(self.labyrinth.start_cell, self.portals)
+        self.player = Player(self.labyrinth.start_cell, self.portals, self.lucky_blocks, self.cell_color)
+        self.labyrinth.add_lucky_blocks(self.portals.portals)
+
+
         self.key_press_duration = 0
         self.in_animation = False
         self.animation_type = None
-
-        self.cell_color = (125, 175, 100)
 
         sys.setrecursionlimit(Info.rows * Info.cols)    # change the recursion limit to the number of cells in the labyrinth to avoid RecursionError
 
@@ -61,9 +71,12 @@ class Game:
     def redraw_window(self):
         self.win.fill(self.cell_color)
 
-        self.labyrinth.draw(self.win)
+        if LuckyBlock.visible:
+            self.labyrinth.draw(self.win)
         self.player.draw(self.win)
         self.portals.draw(self.win)
+        if not LuckyBlock.visible:
+            self.labyrinth.draw(self.win)
         pygame.display.flip()
 
 

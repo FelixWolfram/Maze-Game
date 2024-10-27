@@ -6,7 +6,7 @@ from lucky_blocks import LuckyBlockFactory, LuckyBlock
 
 
 class Labyrinth:
-    def __init__(self):
+    def __init__(self, lucky_blocks):
         self.labyrinth = [[Cell(j, i) for i in range(Info.cols)] for j in range(Info.rows)]
         self.cell_color = (125, 175, 100)
         self.wall_color = (30, 30, 30)
@@ -15,12 +15,11 @@ class Labyrinth:
         self.start_cell = [randint(0, Info.rows - 1), randint(0, Info.cols - 1)]
         self.deepest_recursion = 0
         self.deepest_recursion_cell = None
-        self.lucky_block_count = 2
-        self.lucky_blocks = {}
+        self.lucky_block_count = 10
+        self.lucky_blocks = lucky_blocks
 
         self.generate_maze(self.start_cell[0], self.start_cell[1], 0)
         self.end_cell = self.deepest_recursion_cell
-        self.add_lucky_blocks()
 
 
     def draw(self, win):
@@ -44,7 +43,7 @@ class Labyrinth:
                     draw.rect(win, self.wall_color, (col * Info.cell_size + (col + 1) * Info.wall_width + Info.cell_size, row * Info.cell_size + row * Info.wall_width, 
                                                      Info.wall_width, Info.cell_size + 2 * Info.wall_width))
                 if [row, col] in self.lucky_blocks.values():
-                    self.luckyblocks[row][col].draw(win)
+                    draw.rect(win, LuckyBlock.background_color, (Support.get_pygame_coords([row, col], "col"), Support.get_pygame_coords([row, col], "row"), Info.cell_size, Info.cell_size))
                     
 
     def generate_maze(self, x , y, recursion):
@@ -86,13 +85,18 @@ class Labyrinth:
             self.labyrinth[go_direct_x][go_direct_y].walls["right"] = False
 
 
-    def add_lucky_blocks(self):
+    def add_lucky_blocks(self, portals):
         for _ in range(self.lucky_block_count):
             while True:
                 row, col = randint(0, Info.rows - 1), randint(0, Info.cols - 1) # generate random values for the lucky blocks
-                if [row, col] != self.start_cell and [row, col] != self.end_cell:
-                    self.lucky_blocks[LuckyBlockFactory.get_lucky_block([row, col])] = [row, col]  # add the lucky block with the adjacent cell to the dictionary
+                if [row, col] != self.start_cell and [row, col] != self.end_cell and [row, col] not in self.lucky_blocks.values() and all([row, col] != tp for portal in portals for tp in portal[0:2]):
+                    self.lucky_blocks[LuckyBlockFactory.get_lucky_block([row, col], self.remove_wall, self.end_cell, portals, self.lucky_blocks.values())] = [row, col]  # add the lucky block with the adjacent cell to the dictionary
                     break
+
+    
+    def add_portals(self, add_portal, portal_count):
+        for _ in range(portal_count):
+            add_portal(self.lucky_blocks.values(), self.start_cell)   # also check for adding a new portals during the move animation
 
 
 
