@@ -12,10 +12,10 @@ class Player:
         self.player_scale = 0.95 
         self.player_imgs = [image.load(f"images/Pacman{i}.png") for i in range(1, 5)]
         self.player_imgs = [transform.smoothscale(player_img, (Info.cell_size * self.player_scale, Info.cell_size * self.player_scale)) for player_img in self.player_imgs]
-        self.shrinked_player_imgs = [transform.smoothscale(player_img, (Info.cell_size * (self.player_scale * 0.5), Info.cell_size * (self.player_scale * 0.5))) for player_img in self.player_imgs]
-        self.shrinked_player = False
+        self.player_in_portal = False
         self.image_duration = 0.4  # image changes every n/2 seconds -> one cicle takes n seconds
         self.draw_counter = 0
+        self.delete_portal_on_next_move = False  # saves the index of the portal which should be deleted once the player moves -> happens after the teleportation of the player
         
         self.player_is_horizontal = True
         self.last_horizontal = Direct.RIGHT
@@ -26,18 +26,20 @@ class Player:
         
         self.valid_moves = ("w", "a", "s", "d")
         self.player_offset = Info.cell_size * (1 - self.player_scale) / 2
-        self.shrinked_player_offset = Info.cell_size * (1 - self.player_scale * 0.5) / 2
         self.x = Support.get_pygame_coords(self.game_context.cell, "col") + self.player_offset 
         self.y = Support.get_pygame_coords(self.game_context.cell, "row") + self.player_offset
-        self.portals_for_delete_index = []     # when the player teleported to a new cell, the portal on the old cell should be deleted
-
 
     def move(self, move, redraw_window, new_x, new_y):
         self.game_context.cell = [new_x, new_y]
         self.modify_player_img(move)
 
-        if self.shrinked_player:   # player wants to move out of the portal, so the player should be normal size again
-            self.shrinked_player = False
+        if self.delete_portal_on_next_move:
+            self.game_context.portals.delete_portal(0)  # delete the portal at index 0 -> we put the portal at index 0 as we marked it, that it should be deleted
+            self.game_context.portals.add_portal()  # add a new portal on the new cell
+            self.delete_portal_on_next_move = False
+
+        if self.player_in_portal:   # player wants to move out of the portal, so the player should be normal size again
+            self.player_in_portal = False
 
         for _ in range(floor((Info.cell_size + Info.wall_width) / Info.moving_speed)):
             if move == Direct.LEFT:
@@ -58,24 +60,22 @@ class Player:
         if LuckyBlock.get_speed_reset_status():
             Info.moving_speed = Info.resetted_player_speed
             LuckyBlock.set_speed_reset_status(False)
-        if self.portals_for_delete_index:    # if the player teleported to a new cell and now left the cell again
-            self.game_context.portals.delete_portal(self.portals_for_delete_index.pop())
         
         self.check_for_portal()
         self.check_for_lucky_block()
 
-        if self.portals_for_delete_index:   # if we are standing in a portal, shrink the player a bit, so you don't see the player under the portal
-            self.shrinked_player = True
-        
 
     def check_for_portal(self):
-        if self.game_context.portals.portal_list:
-            index, teleport_destination, teleported = self.game_context.portals.check_for_portal()
-            if teleported:  # if the player is moving into a teleport-cell -> teleport the player to the destination
-                self.game_context.cell = teleport_destination
-                self.x = Support.get_pygame_coords(self.game_context.cell, "col")
-                self.y = Support.get_pygame_coords(self.game_context.cell, "row")
-                self.portals_for_delete_index.append(index)
+        index, teleport_destination, teleported = self.game_context.portals.check_for_portal(self.game_context.cell)
+        if teleported:  # if the player is moving into a teleport-cell -> teleport the player to the destination
+            self.game_context.cell = teleport_destination
+            self.x = Support.get_pygame_coords(self.game_context.cell, "col")
+            self.y = Support.get_pygame_coords(self.game_context.cell, "row")
+            save_portal = self.game_context.portals.portal_list[index]
+            self.game_context.portals.delete_portal(index, True)
+            self.game_context.portals.portal_list.insert(0, save_portal)  # put the portal at the beginning of the list, so it gets deleted on the next move
+            self.delete_portal_on_next_move = True
+            self.player_in_portal = True    # if we are standing in a portal, shrink the player a bit, so you don't see the player under the portal
 
 
     def check_for_lucky_block(self):
@@ -106,10 +106,8 @@ class Player:
 
     def draw(self, win):
         if LuckyBlock.get_visibility():
-            img = self.player_imgs if not self.shrinked_player else self.shrinked_player_imgs
-            extra_offset = self.shrinked_player_offset if self.shrinked_player else 0
             if self.player_is_horizontal:
-                win.blit(img[0] if self.draw_counter < ((Info.fps * self.image_duration) / 2) else img[1], (self.x + extra_offset, self.y + extra_offset))
+                win.blit(self.player_imgs[0] if self.draw_counter < ((Info.fps * self.image_duration) / 2) else self.player_imgs[1], (self.x, self.y))
             else:   
-                win.blit(img[2] if self.draw_counter < ((Info.fps * self.image_duration) / 2) else img[3], (self.x + extra_offset, self.y + extra_offset))
+                win.blit(self.player_imgs[2] if self.draw_counter < ((Info.fps * self.image_duration) / 2) else self.player_imgs[3], (self.x, self.y))
         self.draw_counter = (self.draw_counter + 1) if self.draw_counter < (Info.fps * self.image_duration - 1) else 0

@@ -50,8 +50,8 @@ class HigherSpeed(LuckyBlock):
         self.speed = Info.moving_speed
 
     def action(self):
-        Info.moving_speed = self.speed * 2          # THIS PART COULD LEAD TO PROBLEMS WITH SPECIFIC CELL/CELL SIZES
-        timer = threading.Timer(8.0, self.reset_speed)  # timer is cancelled after n seconds when the method is called
+        Info.moving_speed = self.speed * 1.8          # THIS PART COULD LEAD TO PROBLEMS WITH SPECIFIC CELL/CELL SIZES
+        timer = threading.Timer(7.0, self.reset_speed)  # timer is cancelled after n seconds when the method is called
         self.active_count += 1
         timer.start()
 
@@ -68,7 +68,7 @@ class LowerSpeed(LuckyBlock):
 
     def action(self):
         Info.moving_speed = self.speed / 2
-        timer = threading.Timer(8.0, self.reset_speed)  # timer is cancelled after n seconds when the method is called
+        timer = threading.Timer(6.0, self.reset_speed)  # timer is cancelled after n seconds when the method is called
         self.active_count += 1
         timer.start()
 
@@ -102,7 +102,7 @@ class PartlyInvisible(LuckyBlock):
         # make the player blink between visible and invisible for a few seconds
         self.invisible()  
 
-        intervals = [randint(0, 15) / 10, randint(0, 10) / 10, randint(0, 20) / 10, randint(0, 8) / 10, randint(0, 20) / 10,
+        intervals = [randint(0, 9) / 10, randint(0, 9) / 10, randint(0, 18) / 10, randint(0, 8) / 10, randint(0, 20) / 10,
                      randint(0, 10) / 10, randint(0, 12) / 10]  # add all the intervals in a list
 
         current_time = 0
@@ -138,8 +138,11 @@ class RerollPortals(LuckyBlock):
         self.game_context = gc
 
     def action(self):
-        for i in range(self.game_context.portals.portal_count):
-            self.game_context.portals.delete_portal(i)  # delete all portals
+        for _ in range(self.game_context.portals.portal_count):
+            self.game_context.portals.delete_portal(0)  # delete all portals
+        for _ in range(self.game_context.portals.portal_count):
+            self.game_context.portals.add_portal()  # add a new portal on the new cell
+
 
 class Invulnerable(LuckyBlock):       # later when enemies are added
     pass

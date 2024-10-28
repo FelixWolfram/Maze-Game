@@ -15,7 +15,6 @@ class GameContext:
         self.lucky_blocks = {}
         self.portals = None
 
-
 class Info:
     rows = 20
     cols = 30

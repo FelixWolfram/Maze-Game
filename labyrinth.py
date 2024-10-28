@@ -20,13 +20,13 @@ class Labyrinth:
         self.ghost_change_time = 0.3
         self.draw_counter = 0
 
-        self.labyrinth = [[Cell(j, i) for i in range(Info.cols)] for j in range(Info.rows)]
+        self.labyrinth_grid = [[Cell(j, i) for i in range(Info.cols)] for j in range(Info.rows)]
         self.wall_color = (30, 30, 30)
         self.end_color = (100, 40, 55)
             
         self.deepest_recursion = 0
         self.deepest_recursion_cell = None
-        self.lucky_block_count = 12
+        self.lucky_block_count = 14
 
         self.game_context.cell = [randint(0, Info.rows - 1), randint(0, Info.cols - 1)]
         self.generate_maze(self.game_context.cell[0], self.game_context.cell[1], 0)
@@ -47,16 +47,16 @@ class Labyrinth:
                     self.draw_counter += 1
                     # draw.rect(win, self.end_color, (col * Info.cell_size + (col + 1) * Info.wall_width, row * Info.cell_size + (row + 1) * Info.wall_width, 
                     #                                  Info.cell_size, Info.cell_size))
-                if self.labyrinth[row][col].walls["top"]:
+                if self.labyrinth_grid[row][col].walls["top"]:
                     draw.rect(win, self.wall_color, (col * Info.cell_size + col * Info.wall_width, row * Info.cell_size + row * Info.wall_width, 
                                                      Info.cell_size + 2 * Info.wall_width, Info.wall_width))
-                if self.labyrinth[row][col].walls["bottom"]:
+                if self.labyrinth_grid[row][col].walls["bottom"]:
                     draw.rect(win, self.wall_color, (col * Info.cell_size + col * Info.wall_width, row * Info.cell_size + (row + 1) * Info.wall_width + Info.cell_size, 
                                                      Info.cell_size + 2 * Info.wall_width, Info.wall_width))
-                if self.labyrinth[row][col].walls["left"]:
+                if self.labyrinth_grid[row][col].walls["left"]:
                     draw.rect(win, self.wall_color, (col * Info.cell_size + col * Info.wall_width, row * Info.cell_size + row * Info.wall_width, 
                                                      Info.wall_width, Info.cell_size + 2 * Info.wall_width))
-                if self.labyrinth[row][col].walls["right"]:
+                if self.labyrinth_grid[row][col].walls["right"]:
                     draw.rect(win, self.wall_color, (col * Info.cell_size + (col + 1) * Info.wall_width + Info.cell_size, row * Info.cell_size + row * Info.wall_width, 
                                                      Info.wall_width, Info.cell_size + 2 * Info.wall_width))
                 if [row, col] in self.game_context.lucky_blocks.values():    # this cell has a lucky block
@@ -72,17 +72,17 @@ class Labyrinth:
             valid_directs = []  # get all the valid directions we can go to
             for direct_x, direct_y in directions:
                 nx, ny = x + direct_x, y + direct_y
-                if (0 <= nx < Info.rows and 0 <= ny < Info.cols) and not self.labyrinth[nx][ny].visited: # if we are checking a valid cell which has not been visited yet
+                if (0 <= nx < Info.rows and 0 <= ny < Info.cols) and not self.labyrinth_grid[nx][ny].visited: # if we are checking a valid cell which has not been visited yet
                     valid_directs.append((nx, ny))
 
             if valid_directs:   
-                self.labyrinth[x][y].visited = True
+                self.labyrinth_grid[x][y].visited = True
                 go_direct_x, go_direct_y = valid_directs[randint(0, len(valid_directs) - 1)]   # pick a random valid direction
                 
                 self.remove_wall(x, y, go_direct_x, go_direct_y)        # remove the wall between the current cell and the next cell
                 self.generate_maze(go_direct_x, go_direct_y, recursion_depth + 1)    # take the next cell as the current cell and do the same until there are no valid directions left
             else:   # if there are no valid directions left
-                self.labyrinth[x][y].visited = True
+                self.labyrinth_grid[x][y].visited = True
                 if recursion_depth > self.deepest_recursion:  
                     self.deepest_recursion = recursion_depth
                     self.deepest_recursion_cell = [x, y]    # save the cell with the deepest recursion to take it as the end_cell at the end
@@ -91,17 +91,17 @@ class Labyrinth:
 
     def remove_wall(self, x, y, go_direct_x, go_direct_y):
         if go_direct_x > x:     # if the next cell is below the current cell
-            self.labyrinth[x][y].walls["bottom"] = False
-            self.labyrinth[go_direct_x][go_direct_y].walls["top"] = False
+            self.labyrinth_grid[x][y].walls["bottom"] = False
+            self.labyrinth_grid[go_direct_x][go_direct_y].walls["top"] = False
         elif go_direct_x < x:   # if the next cell is above the current cell
-            self.labyrinth[x][y].walls["top"] = False
-            self.labyrinth[go_direct_x][go_direct_y].walls["bottom"] = False
+            self.labyrinth_grid[x][y].walls["top"] = False
+            self.labyrinth_grid[go_direct_x][go_direct_y].walls["bottom"] = False
         elif go_direct_y > y:   # if the next cell is to the right of the current cell
-            self.labyrinth[x][y].walls["right"] = False
-            self.labyrinth[go_direct_x][go_direct_y].walls["left"] = False
+            self.labyrinth_grid[x][y].walls["right"] = False
+            self.labyrinth_grid[go_direct_x][go_direct_y].walls["left"] = False
         elif go_direct_y < y:   # if the next cell is to the left of the current cell
-            self.labyrinth[x][y].walls["left"] = False
-            self.labyrinth[go_direct_x][go_direct_y].walls["right"] = False
+            self.labyrinth_grid[x][y].walls["left"] = False
+            self.labyrinth_grid[go_direct_x][go_direct_y].walls["right"] = False
 
 
     def add_lucky_blocks(self):

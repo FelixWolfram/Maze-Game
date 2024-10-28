@@ -8,7 +8,7 @@ class Portals:
         self.game_context = game_context
 
         self.portal_list = []
-        self.portal_count = ((Info.rows * Info.cols) // 100) - 2  # 2 for a 20x20 maze, 4 for a 20x30 maze
+        self.portal_count = 5  # 2 for a 20x20 maze, 4 for a 20x30 maze
         self.portal_scale = 1.1
         self.portal_offset = Info.cell_size * (1 - self.portal_scale) / 2
         self.tp_images = [(170, 83, 170), (64, 140, 194), (180, 120, 40), (127, 186, 132), (200, 115, 115), (163, 191, 105), (90, 90, 160)]
@@ -25,7 +25,7 @@ class Portals:
         tp1 = tp2 = 0
         while tp1 == tp2 or (tp1 == self.game_context.end_cell or tp2 == self.game_context.end_cell) or tp1 == tp2 or (tp1 == self.game_context.cell or tp2 == self.game_context.cell) or\
               tp1 in lucky_block_cells or tp2 in lucky_block_cells or\
-                not all([tp1, tp2] != tp for portal in self.portal_list for tp in portal[0:2]):   # make sure the two portals are not the same and not generating on a lucky block
+                not all(tp1 != tp and tp2 != tp for portal in self.portal_list for tp in portal[0:2]):   # make sure the two portals are not the same and not generating on a lucky block
             tp1 = [randint(0, Info.rows - 1), randint(0, Info.cols - 1)]
             tp2 = [randint(0, Info.rows - 1), randint(0, Info.cols - 1)]
         while True:   # get an unused image for the portal
@@ -41,18 +41,18 @@ class Portals:
             self.add_portal()   # also check for adding a new portals during the move animation
 
 
-    def delete_portal(self, delete_index):
-        portal_to_delete = self.portal_list[delete_index][2]
-        self.disabled_portal_imgs.remove(portal_to_delete)  # remove the image of the disabled portal out of the used images list
+    def delete_portal(self, delete_index, do_not_delete_color=False):
+        if not do_not_delete_color:
+            portal_to_delete = self.portal_list[delete_index][2]
+            self.disabled_portal_imgs.remove(portal_to_delete)  # remove the image of the disabled portal out of the used images list
         
         del self.portal_list[delete_index]  # delete the portal on the old cell
-        self.add_portal()  # add a new portal on the new cell
 
 
-    def check_for_portal(self):
+    def check_for_portal(self, cell):
         for index, (tp1, tp2, _) in enumerate(self.portal_list):
-            if self.game_context.cell  == tp1 or self.game_context.cell == tp2:
-                teleport_destination = tp2 if self.game_context.cell == tp1 else tp1
+            if cell  == tp1 or cell == tp2:
+                teleport_destination = tp2 if cell == tp1 else tp1
                 return index, teleport_destination, True
         return None, None, False
  
