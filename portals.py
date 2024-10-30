@@ -8,12 +8,14 @@ class Portals:
         self.game_context = game_context
 
         self.portal_list = []
-        self.portal_count = 5  # 2 for a 20x20 maze, 4 for a 20x30 maze
+        self.portal_count = 4  # 2 for a 20x20 maze, 4 for a 20x30 maze
         self.portal_scale = 1.1
         self.portal_offset = Info.cell_size * (1 - self.portal_scale) / 2
         self.tp_images = [(170, 83, 170), (64, 140, 194), (180, 120, 40), (127, 186, 132), (200, 115, 115), (163, 191, 105), (90, 90, 160)]
-        self.portal_imgs = [image.load(f"images/portal{i}.tiff") for i in range(1, 6)]
+        self.portal_imgs = [image.load(f"images/portal{i}.tiff").convert_alpha() for i in range(1, 6)]
         self.portal_imgs = [transform.smoothscale(portal_img, (Info.cell_size * self.portal_scale, Info.cell_size * self.portal_scale)) for portal_img in self.portal_imgs]
+        for img in self.portal_imgs:
+            img.set_alpha(230)
         self.disabled_portal_imgs = [] 
 
         self.add_multiple_portals(self.portal_count)

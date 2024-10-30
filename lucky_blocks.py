@@ -50,7 +50,7 @@ class HigherSpeed(LuckyBlock):
         self.speed = Info.moving_speed
 
     def action(self):
-        Info.moving_speed = self.speed * 1.8          # THIS PART COULD LEAD TO PROBLEMS WITH SPECIFIC CELL/CELL SIZES
+        Info.moving_speed = self.speed * 1.6          # THIS PART COULD LEAD TO PROBLEMS WITH SPECIFIC CELL/CELL SIZES
         timer = threading.Timer(7.0, self.reset_speed)  # timer is cancelled after n seconds when the method is called
         self.active_count += 1
         timer.start()
@@ -104,7 +104,6 @@ class PartlyInvisible(LuckyBlock):
 
         intervals = [randint(0, 9) / 10, randint(0, 9) / 10, randint(0, 18) / 10, randint(0, 8) / 10, randint(0, 20) / 10,
                      randint(0, 10) / 10, randint(0, 12) / 10]  # add all the intervals in a list
-
         current_time = 0
         toggle_functions = [self.reset_visibility, self.invisible]  # toggle between visible and invisible
 

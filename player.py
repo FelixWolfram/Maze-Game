@@ -1,5 +1,5 @@
 from math import floor
-from pygame import image, transform
+from pygame import image, transform, Rect, mask, key, K_q, K_SPACE
 from data_structs import Direct, Info, Support
 from lucky_blocks import LuckyBlock, RandomTeleport
 from time import sleep
@@ -10,8 +10,9 @@ class Player:
         self.game_context = game_context
 
         self.player_scale = 0.95 
-        self.player_imgs = [image.load(f"images/Pacman{i}.png") for i in range(1, 5)]
+        self.player_imgs = [image.load(f"images/Pacman{i}.png").convert_alpha() for i in range(1, 5)]
         self.player_imgs = [transform.smoothscale(player_img, (Info.cell_size * self.player_scale, Info.cell_size * self.player_scale)) for player_img in self.player_imgs]
+        self.player_mask = mask.from_surface(self.player_imgs[0])   # get the mask for the first image at first
         self.player_in_portal = False
         self.image_duration = 0.4  # image changes every n/2 seconds -> one cicle takes n seconds
         self.draw_counter = 0
@@ -26,12 +27,20 @@ class Player:
         
         self.valid_moves = ("w", "a", "s", "d")
         self.player_offset = Info.cell_size * (1 - self.player_scale) / 2
-        self.x = Support.get_pygame_coords(self.game_context.cell, "col") + self.player_offset 
-        self.y = Support.get_pygame_coords(self.game_context.cell, "row") + self.player_offset
+
+        self.game_context.x = Support.get_pygame_coords(self.game_context.cell, "col") + self.player_offset 
+        self.game_context.y = Support.get_pygame_coords(self.game_context.cell, "row") + self.player_offset
+        self.game_context.player_hitbox = Rect(self.game_context.x + 2 + self.player_offset, self.game_context.y + self.player_offset + 2,
+                                           Info.cell_size - 2 * self.player_offset - 4, Info.cell_size - 2 * self.player_offset - 4)
+
 
     def move(self, move, redraw_window, new_x, new_y):
         self.game_context.cell = [new_x, new_y]
         self.modify_player_img(move)
+
+        keys = key.get_pressed()
+        if keys[K_q] or keys[K_SPACE]:
+            self.game_context.invulnerability.activate()    # activate invulnerability -> only activates after the 30 second cooldown each time
 
         if self.delete_portal_on_next_move:
             self.game_context.portals.delete_portal(0)  # delete the portal at index 0 -> we put the portal at index 0 as we marked it, that it should be deleted
@@ -41,26 +50,33 @@ class Player:
         if self.player_in_portal:   # player wants to move out of the portal, so the player should be normal size again
             self.player_in_portal = False
 
-        for _ in range(floor((Info.cell_size + Info.wall_width) / Info.moving_speed)):
-            if move == Direct.LEFT:
-                self.x -= Info.moving_speed
-            elif move == Direct.RIGHT:
-                self.x += Info.moving_speed
-            elif move == Direct.UP:
-                self.y -= Info.moving_speed
-            elif move == Direct.DOWN:
-                self.y += Info.moving_speed
+        for _ in range(floor((Info.cell_size + Info.wall_width) / Info.moving_speed)):      # DER TEIL GEHT NOCH BESSER / KÜRZER
+            if self.game_context.game_end:
+                return
+
+            direction_vectors = {
+                Direct.LEFT: (-Info.moving_speed, 0),
+                Direct.RIGHT: (Info.moving_speed, 0), 
+                Direct.UP: (0, -Info.moving_speed),
+                Direct.DOWN: (0, Info.moving_speed)
+            }
+            directx, directy = direction_vectors[move]
+
+            self.game_context.x += directx  # move the player and the hitbox
+            self.game_context.y += directy
+            self.game_context.player_hitbox[0] += directx
+            self.game_context.player_hitbox[1] += directy
 
             sleep(self.sleep_time)
             redraw_window()
 
-        self.x = Support.get_pygame_coords(self.game_context.cell, "col") + self.player_offset    # correct the player position to the cell position if there is a deviation
-        self.y = Support.get_pygame_coords(self.game_context.cell, "row") + self.player_offset    # deviation can be caused by the moving speed and the cell size
-    
-        if LuckyBlock.get_speed_reset_status():
+        self.game_context.x = Support.get_pygame_coords(self.game_context.cell, "col") + self.player_offset    # correct the player position to the cell position if there is a deviation
+        self.game_context.y = Support.get_pygame_coords(self.game_context.cell, "row") + self.player_offset    # deviation can be caused by the moving speed and the cell size
+        self.game_context.player_hitbox = Rect(self.game_context.x + 2 + self.player_offset, self.game_context.y + self.player_offset + 2,
+                                           Info.cell_size - 2 * self.player_offset - 4, Info.cell_size - 2 * self.player_offset - 4)
+        if LuckyBlock.get_speed_reset_status():     # reset speed if the duration of the speed change is over
             Info.moving_speed = Info.resetted_player_speed
             LuckyBlock.set_speed_reset_status(False)
-        
         self.check_for_portal()
         self.check_for_lucky_block()
 
@@ -69,8 +85,8 @@ class Player:
         index, teleport_destination, teleported = self.game_context.portals.check_for_portal(self.game_context.cell)
         if teleported:  # if the player is moving into a teleport-cell -> teleport the player to the destination
             self.game_context.cell = teleport_destination
-            self.x = Support.get_pygame_coords(self.game_context.cell, "col")
-            self.y = Support.get_pygame_coords(self.game_context.cell, "row")
+            self.game_context.x = Support.get_pygame_coords(self.game_context.cell, "col")
+            self.game_context.y = Support.get_pygame_coords(self.game_context.cell, "row")
             save_portal = self.game_context.portals.portal_list[index]
             self.game_context.portals.delete_portal(index, True)
             self.game_context.portals.portal_list.insert(0, save_portal)  # put the portal at the beginning of the list, so it gets deleted on the next move
@@ -81,12 +97,15 @@ class Player:
     def check_for_lucky_block(self):
         if self.game_context.lucky_blocks:
             if self.game_context.cell in self.game_context.lucky_blocks.values():
+                self.game_context.points += 200
                 lucky_block_on_player = list(self.game_context.lucky_blocks.keys())[list(self.game_context.lucky_blocks.values()).index(self.game_context.cell)] # get the lucky block which is on the player cell
                 if type(lucky_block_on_player) == RandomTeleport:
-                    self.game_context.cell, self.x, self.y = lucky_block_on_player.action()
+                    self.game_context.cell, self.game_context.x, self.game_context.y = lucky_block_on_player.action()
                 else:
                     lucky_block_on_player.action()
                 del self.game_context.lucky_blocks[lucky_block_on_player]
+        else:   # if there are no lucky blocks left, generate new ones
+            self.game_context.add_lucky_blocks()
 
     
     def modify_player_img(self, move):
@@ -107,7 +126,8 @@ class Player:
     def draw(self, win):
         if LuckyBlock.get_visibility():
             if self.player_is_horizontal:
-                win.blit(self.player_imgs[0] if self.draw_counter < ((Info.fps * self.image_duration) / 2) else self.player_imgs[1], (self.x, self.y))
+                win.blit(self.player_imgs[0] if self.draw_counter < ((Info.fps * self.image_duration) / 2) else self.player_imgs[1], (self.game_context.x, self.game_context.y))
             else:   
-                win.blit(self.player_imgs[2] if self.draw_counter < ((Info.fps * self.image_duration) / 2) else self.player_imgs[3], (self.x, self.y))
+                win.blit(self.player_imgs[2] if self.draw_counter < ((Info.fps * self.image_duration) / 2) else self.player_imgs[3], (self.game_context.x, self.game_context.y))
         self.draw_counter = (self.draw_counter + 1) if self.draw_counter < (Info.fps * self.image_duration - 1) else 0
+        # draw.rect(win, (255, 0, 0), (self.game_context.player_hitbox), 2) # -> hitbox of the player

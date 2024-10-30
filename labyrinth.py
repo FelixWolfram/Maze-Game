@@ -26,11 +26,12 @@ class Labyrinth:
             
         self.deepest_recursion = 0
         self.deepest_recursion_cell = None
-        self.lucky_block_count = 14
+        self.lucky_block_count = 15
 
         self.game_context.cell = [randint(0, Info.rows - 1), randint(0, Info.cols - 1)]
         self.generate_maze(self.game_context.cell[0], self.game_context.cell[1], 0)
         self.game_context.end_cell = self.deepest_recursion_cell
+        self.game_context.add_lucky_blocks = self.add_lucky_blocks
 
 
     def draw(self, win):
@@ -48,22 +49,26 @@ class Labyrinth:
                     # draw.rect(win, self.end_color, (col * Info.cell_size + (col + 1) * Info.wall_width, row * Info.cell_size + (row + 1) * Info.wall_width, 
                     #                                  Info.cell_size, Info.cell_size))
                 if self.labyrinth_grid[row][col].walls["top"]:
-                    draw.rect(win, self.wall_color, (col * Info.cell_size + col * Info.wall_width, row * Info.cell_size + row * Info.wall_width, 
+                    draw.rect(win, self.wall_color, (col * Info.cell_size + col * Info.wall_width, row * Info.cell_size + row * Info.wall_width + Info.bar_size, 
                                                      Info.cell_size + 2 * Info.wall_width, Info.wall_width))
                 if self.labyrinth_grid[row][col].walls["bottom"]:
-                    draw.rect(win, self.wall_color, (col * Info.cell_size + col * Info.wall_width, row * Info.cell_size + (row + 1) * Info.wall_width + Info.cell_size, 
+                    draw.rect(win, self.wall_color, (col * Info.cell_size + col * Info.wall_width, row * Info.cell_size + (row + 1) * Info.wall_width + Info.cell_size + Info.bar_size, 
                                                      Info.cell_size + 2 * Info.wall_width, Info.wall_width))
                 if self.labyrinth_grid[row][col].walls["left"]:
-                    draw.rect(win, self.wall_color, (col * Info.cell_size + col * Info.wall_width, row * Info.cell_size + row * Info.wall_width, 
+                    draw.rect(win, self.wall_color, (col * Info.cell_size + col * Info.wall_width, row * Info.cell_size + row * Info.wall_width + Info.bar_size, 
                                                      Info.wall_width, Info.cell_size + 2 * Info.wall_width))
                 if self.labyrinth_grid[row][col].walls["right"]:
-                    draw.rect(win, self.wall_color, (col * Info.cell_size + (col + 1) * Info.wall_width + Info.cell_size, row * Info.cell_size + row * Info.wall_width, 
+                    draw.rect(win, self.wall_color, (col * Info.cell_size + (col + 1) * Info.wall_width + Info.cell_size, row * Info.cell_size + row * Info.wall_width + Info.bar_size, 
                                                      Info.wall_width, Info.cell_size + 2 * Info.wall_width))
+
+
+    def draw_lucky_blocks(self, win):
+        for row in range(Info.rows):
+            for col in range(Info.cols):
                 if [row, col] in self.game_context.lucky_blocks.values():    # this cell has a lucky block
                     win.blit(self.lucky_block_img, (Support.get_pygame_coords([row, col], "col"), Support.get_pygame_coords([row, col], "row")))
                     #draw.rect(win, LuckyBlock.background_color, (Support.get_pygame_coords([row, col], "col"), Support.get_pygame_coords([row, col], "row"), Info.cell_size, Info.cell_size))
 
-                    
 
     def generate_maze(self, x , y, recursion_depth):
         directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]  # right, left, bottom, top
