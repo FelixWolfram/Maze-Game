@@ -11,10 +11,6 @@ from energy_orb import MasterEnergyOrbs
 from ability import Invulnerability
 
 
-# TODO:
-# portals could be generated right in front of the player at the moment
-# you could get teleported into an emeny
-
 class Game:
     def __init__(self, starting_points, highscore, win_streak, inv_progress):
         self.game_context = GameContext()
