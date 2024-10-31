@@ -1,6 +1,7 @@
 from pygame import image, transform, Rect, mask
 from data_structs import Info, Support, Direct
 from random import choice
+from threading import Timer
 
 
 class EnemyRegulator:
@@ -8,9 +9,10 @@ class EnemyRegulator:
         self.game_context = game_context
 
         self.player_offset = player_offset
-        self.enemy_count = 6
+        self.enemy_start_count = 4
         self.enemy_list = []  # list of all enemies which are on the field at the moment
         self.ghost_size_factor = 0.92
+        self.enemy_speed = 0.01 # its the sleep time of the loop -> the lower the faster are the enemies
         self.ghost_size = Info.cell_size * self.ghost_size_factor
         self.labyrinth_grid = labyrinth_grid
         self.ghost_offset = Info.cell_size * (1 - self.ghost_size_factor) / 2
@@ -18,6 +20,7 @@ class EnemyRegulator:
         self.enemy_imgs = [transform.smoothscale(ghost, (self.ghost_size, self.ghost_size)) for ghost in self.enemy_imgs]
         self.enemy_mask = mask.from_surface(self.enemy_imgs[0])
         self.player_mask = player_mask
+        self.timer = None
 
 
     def create_enemy(self):
@@ -30,9 +33,13 @@ class EnemyRegulator:
         self.enemy_list.remove(index)
 
     
-    def move_all_enemies(self, win):
+    def move_all_enemies(self):
+        if self.timer is not None:
+            self.timer.cancel()
+        self.timer = Timer(self.enemy_speed, self.move_all_enemies)
         for enemy in self.enemy_list:
-            enemy.move(win)
+            enemy.move()
+        self.timer.start()
 
 
 class Enemy:
@@ -45,9 +52,8 @@ class Enemy:
         self.x = Support.get_pygame_coords(self.cell, "col")
         self.y = Support.get_pygame_coords(self.cell, "row")
         self.ghost_offset = ghost_offset
-        self.speed_ratio = 2  # "2" is half the speed of the player, "3" a third, "1" is the speed as the player
-        self.ghost_moving_speed = Info.resetted_player_speed / self.speed_ratio
-        self.cooldown = ((Info.cell_size + Info.wall_width) / Info.resetted_player_speed) * self.speed_ratio
+        self.ghost_moving_speed = (Info.cell_size + Info.wall_width) / 31   
+        self.cooldown = ((Info.cell_size + Info.wall_width) // self.ghost_moving_speed)
         self.img = img
         self.locked_direction = None
         self.ghost_size = ghost_size
@@ -58,7 +64,7 @@ class Enemy:
         self.player_mask = player_mask
 
 
-    def move(self, win):
+    def move(self):
         self.cooldown -= 1
         if self.direction is not None:
             if self.direction == Direct.RIGHT:
@@ -70,13 +76,11 @@ class Enemy:
             elif self.direction == Direct.DOWN:
                 self.y += self.ghost_moving_speed
 
-        if self.cooldown <= 0:  # after the cooldown is reached, the enemy is on a new cell
-            self.do_next_move()
-
         self.hitbox = Rect(self.x + 5, self.y + 5, self.ghost_size - 8, self.ghost_size - 8)
         if not self.game_context.invulnerability.active:
             self.check_for_collision()
-        self.draw(win)
+        if self.cooldown <= 0:  # after the cooldown is reached, the enemy is on a new cell
+            self.do_next_move()
 
 
     def check_for_portal(self):
@@ -89,6 +93,8 @@ class Enemy:
             self.game_context.portals.add_portal()
             self.locked_direction = None
             self.direction = None
+            if not self.game_context.invulnerability.active:
+                self.check_for_collision()  # check for collision after the teleportation -> not sure if it changes anything
 
 
     def do_next_move(self):
@@ -103,12 +109,12 @@ class Enemy:
             self.y = Support.get_pygame_coords(self.cell, "row")
 
             self.change_cell, self.direction, self.locked_direction = self.get_new_direction(cell_x, cell_y, walls)  # then save the new cell as the current cell for the enemy
-            self.cooldown = ((Info.cell_size + Info.wall_width) / Info.resetted_player_speed) * self.speed_ratio  # reset the cooldown
+            self.cooldown = ((Info.cell_size + Info.wall_width) // self.ghost_moving_speed)
 
 
     def check_for_collision(self):  # only works if the enemy is smaller than the player -> it checks whether one of the four corner of the enemy is in the hitbox of the player
         if self.hitbox.colliderect(self.game_context.player_hitbox):    # first check the collision roughly, if the hitboxes are colliding, check if they are colliding in detail 
-            offset = (self.game_context.x - self.x, self.game_context.y - self.y)   # better performance if we do a rough check first
+            offset = (self.x - self.game_context.x, self.y - self.game_context.y)   # better performance if we do a rough check first
             if self.player_mask.overlap(self.enemy_mask, offset):
                 self.game_context.game_end = True
 

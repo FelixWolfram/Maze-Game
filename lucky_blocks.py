@@ -1,22 +1,17 @@
 import threading
 from data_structs import Info, Support
-from pygame import draw
+from abc import ABC, abstractmethod
 from random import randint
 
-
-# abstrakte Klasse LuckyBlock?? Wie geht sowas? Was bringt das?
 
 class LuckyBlockFactory:    # is called to generate a random Lucky Block object
     @staticmethod       # so the method can be called without creating an object of the class
     def get_lucky_block(gc, remove_wall):  # -> "gc" is the game context
-        all_blocks = [PartlyInvisible(), HigherSpeed(), LowerSpeed(), RandomTeleport(gc), RemoveWalls(gc, remove_wall), RerollPortals(gc)]
+        all_blocks = [RandomTeleport(gc), HigherSpeed(), LowerSpeed(), PartlyInvisible(), RemoveWalls(gc, remove_wall), RerollPortals(gc)]
         return all_blocks[randint(0, len(all_blocks) - 1)]  # returns a random LuckyBlock object 
-        # Erzeugt ein zufälliges LuckyBlock-Objekt
 
 
-
-class LuckyBlock:       # TODO add getter and setter methods for the static attributes and make them private
-                        # TODO MACHT HIER EINE ABSTRAKTE KLASSE SINN?? WAS GENAU BRINGT DAS? CHATGPT HAT DAS VORGESCHLAGEN
+class LuckyBlock(ABC):  # abstract class
     _mark_speed_reset = False   # private static variables
     _visible = True
 
@@ -39,43 +34,56 @@ class LuckyBlock:       # TODO add getter and setter methods for the static attr
     def set_speed_reset_status(status):
         LuckyBlock._mark_speed_reset = status
 
+    @abstractmethod
     def action(self):
         raise NotImplementedError    # action method will be overwritten by the subclasses -> raises an error if the method is not overwritten
 
+    def reset_all_timers(self):
+        for timer in self.timers:
+            timer.cancel()
+        self.timers.clear()
 
 
 class HigherSpeed(LuckyBlock):
     def __init__(self):
         super().__init__()      # gets self.active_count from the LuckyBlock class
         self.speed = Info.moving_speed
+        self.timers = []
 
     def action(self):
-        Info.moving_speed = self.speed * 1.6          # THIS PART COULD LEAD TO PROBLEMS WITH SPECIFIC CELL/CELL SIZES
+        Info.moving_speed = self.speed * 1.6
         timer = threading.Timer(7.0, self.reset_speed)  # timer is cancelled after n seconds when the method is called
         self.active_count += 1
         timer.start()
+        self.timers.append(timer)
 
     def reset_speed(self):
         self.active_count -= 1
         if self.active_count == 0:
             LuckyBlock.set_speed_reset_status(True)
+        if self.timers:
+            self.timers.pop(0).cancel()
 
 
 class LowerSpeed(LuckyBlock):
     def __init__(self):
         super().__init__()      # gets self.active_count from the LuckyBlock class
         self.speed = Info.moving_speed
+        self.timers = []
 
     def action(self):
-        Info.moving_speed = self.speed / 2
+        Info.moving_speed = self.speed / 1.7
         timer = threading.Timer(6.0, self.reset_speed)  # timer is cancelled after n seconds when the method is called
         self.active_count += 1
         timer.start()
+        self.timers.append(timer)
 
     def reset_speed(self):
         self.active_count -= 1
         if self.active_count == 0:
             LuckyBlock.set_speed_reset_status(True)
+        if self.timers:
+            self.timers.pop(0).cancel()
 
 
 
@@ -96,7 +104,7 @@ class RandomTeleport(LuckyBlock):
 
 class PartlyInvisible(LuckyBlock):
     def __init__(self):
-        pass
+        self.timers = []
 
     def action(self):
         # make the player blink between visible and invisible for a few seconds
@@ -112,12 +120,17 @@ class PartlyInvisible(LuckyBlock):
             func = toggle_functions[i % 2]  # alternate between reset_visibility und invisible
             timer = threading.Timer(current_time, func)
             timer.start()
+            self.timers.append(timer)
 
     def invisible(self):
         LuckyBlock.set_visibility(False)
+        if self.timers:
+            self.timers.pop(0).cancel()
 
     def reset_visibility(self):
         LuckyBlock.set_visibility(True)
+        if self.timers:
+            self.timers.pop(0).cancel()
 
 
 class RemoveWalls(LuckyBlock):

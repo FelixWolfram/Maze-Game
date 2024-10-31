@@ -22,6 +22,7 @@ class GameContext:
         self.points = 0
         self.highscore = 0
         self.invulnerability = None
+        self.tp_red = []    # stores 2 positions for the random teleport lucky block -> if the player gets teleported
 
 
 class Info:
@@ -32,7 +33,7 @@ class Info:
     if (cell_size) % 2 != 0:
         cell_size -= 1      # cell size should be an even number to avoid problems with the animation of the player when moving -> easier to change the moving speed
     wall_width = cell_size // 10
-    moving_speed = ((cell_size + wall_width) / 11) if (cols > (rows * 1.1)) else 1
+    moving_speed = (cell_size + wall_width) / 11
     resetted_player_speed = moving_speed    # because the speed of the player is changed with this variable we can reset it
     win_width = cols * cell_size + (wall_width * (cols + 1))
     win_height = rows * cell_size + (wall_width * (rows + 1)) + bar_size

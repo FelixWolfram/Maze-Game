@@ -1,6 +1,6 @@
 from random import randint, choice
 from data_structs import Info, Support
-from pygame import draw, image, transform
+from pygame import image, transform
 
 
 class Portals:
@@ -15,7 +15,7 @@ class Portals:
         self.portal_imgs = [image.load(f"images/portal{i}.tiff").convert_alpha() for i in range(1, 6)]
         self.portal_imgs = [transform.smoothscale(portal_img, (Info.cell_size * self.portal_scale, Info.cell_size * self.portal_scale)) for portal_img in self.portal_imgs]
         for img in self.portal_imgs:
-            img.set_alpha(230)
+            img.set_alpha(255)
         self.disabled_portal_imgs = [] 
 
         self.add_multiple_portals(self.portal_count)
@@ -53,7 +53,7 @@ class Portals:
 
     def check_for_portal(self, cell):
         for index, (tp1, tp2, _) in enumerate(self.portal_list):
-            if cell  == tp1 or cell == tp2:
+            if cell == tp1 or cell == tp2:
                 teleport_destination = tp2 if cell == tp1 else tp1
                 return index, teleport_destination, True
         return None, None, False
